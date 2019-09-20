@@ -9,7 +9,7 @@
 CAN3::CAN3(SPI& _spi, PinName ncs)//, PinName itr)
         : spi(_spi), _mcp(spi, ncs) {//, _itr(itr) {
     printf("\n\rcan = %d",this);
-
+    _mcp.setCANCTRL_Mode
 }
 
 uint8_t CAN3::read(CANMessage *msg) {

@@ -1,55 +1,73 @@
 #include <mbed.h>
-#include <FastPWM.h>
-#include "MCP2515/CAN3.h"
+#include <MCP2515.h>
 
+#define DEBUG
+
+#ifdef DEBUG
+#define debug(x) pc.printf(x)
+#define timeTag pc.printf("%s", __TIME__)
+#else
+#define debug(x)
+#define timeTag
+#endif
+
+// Pin Defs
+#define _MOSI A6
+#define _MISO A5
+#define _SCK A4
+#define _INT A3
+#define _NSS A2
+
+#define SCK A4
+#define MISO A5
+#define MOSI A6
+#define SS A2
+#define RESET A0
+
+// Base stuff to init
 DigitalOut led(LED1);
 Serial pc(SERIAL_TX, SERIAL_RX, 115200);
-FastPWM cryst(D5);
+
+#define _10kbps
+SPI spi(_MOSI, _MISO, _SCK);
+DigitalOut ss(_NSS);
+MCP2515 can(spi, _NSS);
 
 int main() {
-  // Set the clock pin to 8 Mhz for the CAN chip
-  cryst.prescaler(1); // Smallest prescaler possible to get the fastest clock possible
-  cryst.period_ticks(10); // 80 Mhz / 10 = 8Mhz
-  cryst.pulsewidth_ticks(5); // MCP needs 45% - 55% duty cycle, so half of period
+    pc.printf("\n-================================-\n");
+    timeTag;
+    debug(": Init: CAN:\n");
+    can.reset();
+    can.setMode(MCP2515Mode(LOOPBACK));
+    can.baudConfig(10);
+    
+    byte outStuff[8];
+    byte inStuff[8];
+    byte len;
+    unsigned short id;
+    volatile byte command[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    while(1) {
+        byte command[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+        pc.scanf("%8s", command);
+        pc.printf("Sending: %s\n", command);
 
+        pc.printf("Read status: %d\n", can.readStatus());
+        // while((can.readStatus() & 0x80) == 0x80) {
+            // Send the data
+            
+            can.load_ff_0(8, 1, command); // Transmit the data
+            can.send_0(); // Select send buffer 0
+            can.readDATA_ff_0(&len, inStuff, &id); // Recieve the data
+            
+            // Output what's been found BUFFER 1
+            pc.printf("Data: %d bytes long: ", len); 
+            for (int i = 0; i < len; i++) {
+                pc.printf("%c", inStuff[i]);
+            } pc.printf("\n");
+        // }
 
-
-  while(1) {
-      pc.printf("LED Off\n");
-      led = 0;
-      wait(0.5);
-      led = 1;
-      wait_ms(0.2);
-  }
+        // Flash the LED and wait a bit
+        led = !led;
+        wait(0.5);
+    }
 }
-
-// #include <mbed.h>
-// #include "CAN3.h"
-// #include <FastPWM.h>
-
-// Serial pc(SERIAL_TX, SERIAL_RX, 115200);
-// DigitalOut led(LED1);
-// FastPWM cryst(D8);
-
-// SPI spi(A6, A5, A4, NC);
-// CAN3 can(spi,A3); //spi, ncs, itr
-// // DigitalOut cs(A3); // This can be any pin
-
-
-// int main() {
-//   cryst.period_us((double)0.05);
-//   wait_ms(100); // Wait for the setup stuff to calm down
-//   pc.printf("CAN Testing: %s\n", __TIME__);
-
-//   char data[1] = {0};
-//   can.frequency(125000);
-//   CANMessage msg(2002,data,1);
-//   msg.data[0] = 253;
-  
-//   while(1) {
-//     can.write(&msg);
-//     pc.printf("%s: Send:%d\r\n",__TIME__, msg.data[0]);
-//     led = !led;
-//     wait(2);
-//   }
-// }

@@ -11,7 +11,6 @@
 #define BFPCTRL        0x0C
 #define TXRTSCTRL       0x0D
 
-
 class CAN3  {
     SPI& spi;
     //InterruptIn _itr;

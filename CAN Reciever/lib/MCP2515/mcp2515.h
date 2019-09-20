@@ -1,4 +1,3 @@
-
 #ifndef _MCP2515_H_
 #define _MCP2515_H_
 
